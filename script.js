@@ -1,74 +1,83 @@
-const form = document.querySelector('form');
+const EMAILJS_USER_ID = "f92ahcxH1VDf-Cgwr";
+const EMAILJS_SERVICE_ID = "service_3ulht6j";
+const EMAILJS_TEMPLATE_ID = "template_p1mxooj";
 
-form.addEventListener('submit', (e) => {
-  e.preventDefault();
-
-  const name = document.querySelector('input[name="name"]').value.trim();
-  const email = document.querySelector('input[name="email"]').value.trim();
-  const message = document.querySelector('textarea[name="message"]').value.trim();
-
-  // Basic validation
-  if (!name || !email || !message) {
-    alert("Please fill out all fields.");
-    return;
-  }
-
-  // Optional: email pattern check
-  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailPattern.test(email)) {
-    alert("Please enter a valid email address.");
-    return;
-  }
-
-  // ✅ Success
-  console.log("Name:", name);
-  console.log("Email:", email);
-  console.log("Message:", message);
-
-  alert(`Thanks for reaching out, ${name}! Your message has been submitted.`);
-
-  // Clear form after submit
-  form.reset();
-
-  // 🔧 If connecting to backend later:
-  /*
-  fetch('http://localhost:8080/send-email', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, email, message })
-  })
-  .then(res => res.json())
-  .then(data => console.log('Success:', data))
-  .catch(err => console.error('Error:', err));
-  */
-});
-
-// ✅ Initialize EmailJS
-(function() {
-  emailjs.init("f92ahcxH1VDf-Cgwr"); // Your actual public key
+// Initialize EmailJS
+(function () {
+  emailjs.init(EMAILJS_USER_ID);
 })();
 
-// ✅ Handle form submission
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
   const form = document.getElementById("contact-form");
+  if (!form) {
+    console.error("Contact form not found (#contact-form).");
+    return;
+  }
 
-  form.addEventListener("submit", function(event) {
-    event.preventDefault();
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
 
-    // Change button text while sending
-    const submitButton = form.querySelector(".btn-submit");
-    submitButton.textContent = "Sending...";
+    const name = form.querySelector('input[name="name"]').value.trim();
+    const email = form.querySelector('input[name="email"]').value.trim();
+    const message = form.querySelector('textarea[name="message"]').value.trim();
 
-    // ✅ Send email using EmailJS
-    emailjs.sendForm("service_3ulht6j", "template_p1mxooj", form)
-      .then(function() {
-        alert(`✅ Thanks for reaching out, ${name}! Your message has been sent successfully.`);
+    // VALIDATION POPUP — SWEETALERT
+    if (!name || !email || !message) {
+      Swal.fire({
+        title: "Missing Details",
+        text: "Please fill all fields before submitting.",
+        icon: "warning",
+        confirmButtonColor: "#ffaa00",
+      });
+      return;
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email)) {
+      Swal.fire({
+        title: "Invalid Email",
+        text: "Please enter a valid email address.",
+        icon: "info",
+        confirmButtonColor: "#0077b6",
+      });
+      return;
+    }
+
+    // DEBUG: FormData log
+    const fd = new FormData(form);
+    console.log("FormData about to send:");
+    for (const pair of fd.entries()) {
+      console.log(pair[0] + ":", pair[1]);
+    }
+
+    const submitBtn = form.querySelector(".btn-submit");
+    const originalBtnText = submitBtn ? submitBtn.textContent : "Send Message";
+    if (submitBtn) submitBtn.textContent = "Sending...";
+
+    // EmailJS SEND
+    emailjs
+      .sendForm(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, "#contact-form")
+      .then(() => {
+        Swal.fire({
+          title: "Message Sent!",
+          text: `Thank you ${name}, I will get back to you soon.`,
+          icon: "success",
+          confirmButtonColor: "#0077b6",
+        });
         form.reset();
-        submitButton.textContent = "Send Message";
-      }, function(error) {
-        alert("❌ Failed to send message. Please try again later.");
-        console.error("Error:", error);
-        submitButton.textContent = "Send Message";
+        if (submitBtn) submitBtn.textContent = originalBtnText;
+      })
+      .catch((err) => {
+        console.error("EmailJS error:", err);
+
+        Swal.fire({
+          title: "Failed to Send",
+          text: "Something went wrong. Please try again.",
+          icon: "error",
+          confirmButtonColor: "#d33",
+        });
+
+        if (submitBtn) submitBtn.textContent = originalBtnText;
       });
   });
 });
